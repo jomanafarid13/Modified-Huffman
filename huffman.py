@@ -14,7 +14,7 @@ class HuffmanNode:
 
 def get_frequencies(file_path):
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, 'r', encoding='utf-8', newline='') as file:
             text = file.read()
 
         if not text:

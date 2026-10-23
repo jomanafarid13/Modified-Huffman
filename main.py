@@ -1,92 +1,91 @@
+import os
 from huffman import (
     get_frequencies,
     apply_modification,
     build_huffman_tree,
     generate_codes
 )
-
 from compression import (
     encode_text,
     bits_to_bytes,
     write_compressed_file
 )
 
+from decompression import decompress_file
+
+
+def build_codes(freqs, min_limit):
+    modified_freqs, others_freqs, fixed_codes = apply_modification(freqs, min_limit)
+    root = build_huffman_tree(modified_freqs)
+    codes_dict = generate_codes(root)
+    return modified_freqs, others_freqs, fixed_codes, codes_dict
+
+
 if __name__ == "__main__":
 
-    file_path = "test.txt"
-    min_limit = 0.15
+    file_path =  "test.txt"
+    min_limit = float(input("Minimum probability (e.g. 0.01): "))
+
+    compressed_path = "compressed.bin"
+    decompressed_path = "decompressed.txt"
 
     print(f"\n[1] Reading file: {file_path}")
     freqs, original_text = get_frequencies(file_path)
 
-    if freqs:
-        print(f"    Original Characters Count: {len(freqs)}")
+    if not freqs:
+        print("Empty or missing file. Nothing to compress.")
+        raise SystemExit
 
-        print(f"\n[2] Applying Modification (Min Limit = {min_limit})")
-        modified_freqs, others_freqs, fixed_codes = apply_modification(freqs, min_limit)
+    print(f"    Distinct symbols: {len(freqs)} | Total chars: {len(original_text)}")
 
-        print(f"    Modified Frequencies (For Huffman): {modified_freqs}")
-        print(f"    Others Frequencies: {others_freqs}")
-        print(f"    Fixed Codes for Others: {fixed_codes}")
+    print(f"\n[2] Applying modification (min limit = {min_limit})")
+    modified_freqs, others_freqs, fixed_codes, codes_dict = build_codes(freqs, min_limit)
+    print(f"    Normal symbols: {len(modified_freqs) - (1 if others_freqs else 0)}")
+    print(f"    Symbols in Others: {len(others_freqs)}")
 
-        print("\n[3] Building Huffman Tree...")
-        root = build_huffman_tree(modified_freqs)
+    print("\n[3] Huffman codes:")
+    for sym, code in sorted(codes_dict.items(), key=lambda x: len(x[1])):
+        print(f"    {repr(sym):>10} -> {code}")
+    if fixed_codes:
+        print("    Fixed codes for Others:")
+        for sym, code in fixed_codes.items():
+            print(f"    {repr(sym):>10} -> {code}")
 
-        print("\n[4] Generating Codes...")
-        codes_dict = generate_codes(root)
-        
-        print("\n[5] Encoding text...")
+    print("\n[4] Encoding...")
+    bitstream = encode_text(original_text, codes_dict, fixed_codes)
+    data, original_bit_length = bits_to_bytes(bitstream)
 
-        bitstream = encode_text(
-            original_text,
-            codes_dict,
-            fixed_codes
-        )
+    print("[5] Writing compressed file...")
+    write_compressed_file(
+        output_path=compressed_path,
+        data=data,
+        codes_dict=codes_dict,
+        fixed_codes=fixed_codes,
+        original_bit_length=original_bit_length,
+        original_char_count=len(original_text),
+        min_limit=min_limit
+    )
 
-        print("Original text length:", len(original_text), "characters")
-        print("Compressed bit length:", len(bitstream), "bits")
+    print("\n[6] Decompressing...")
+    decoded = decompress_file(compressed_path, decompressed_path)
 
-        print("\n[6] Converting bits to bytes...")
+    with open(file_path, "rb") as f1, open(decompressed_path, "rb") as f2:
+        identical = f1.read() == f2.read()
 
-        data, original_bit_length = bits_to_bytes(bitstream)
+    print("\n========== RESULTS ==========")
+    print("Lossless (text equal)  :", decoded == original_text)
+    print("Lossless (bytes equal) :", identical)
 
-        print("Compressed data size:", len(data), "bytes")
+    orig_size = os.path.getsize(file_path)
+    comp_size = os.path.getsize(compressed_path)
+    print(f"Original size          : {orig_size} bytes")
+    print(f"Compressed (with header): {comp_size} bytes")
+    print(f"Compressed (data only)  : {len(data)} bytes")
+    print(f"Ratio (with header)     : {orig_size / comp_size:.3f}")
+    print(f"Ratio (data only)       : {orig_size / len(data):.3f}")
 
-        print("\n[7] Writing compressed file...")
-
-        write_compressed_file(
-            output_path="compressed.bin",
-            data=data,
-            codes_dict=codes_dict,
-            fixed_codes=fixed_codes,
-            original_bit_length=original_bit_length,
-            original_char_count=len(original_text),
-            min_limit=min_limit
-        )
-
-        print("\n--- FINAL OUTPUT FOR TEAM ---")
-        print("1. Huffman Codes Dictionary :")
-        print(codes_dict)
-        
-        print("\n2. Fixed Codes for 'Others' group:")
-        print(fixed_codes)
-
-        print("Modified Frequencies to rebuild tree:")
-        print(modified_freqs)
-        print("Others Frequencies:")
-        print(others_freqs)
-
-        print("\n[Test] Simulating Compression:")
-        test_char_normal = list(modified_freqs.keys())[0] if modified_freqs else 'A'
-        
-        if test_char_normal in codes_dict and test_char_normal != "Others":
-            print(f"    Normal char '{test_char_normal}' -> Huffman Code: {codes_dict[test_char_normal]}")
-            
-        if others_freqs:
-            test_char_other = list(others_freqs.keys())[0]
-            others_huff_code = codes_dict.get("Others", "")
-            other_fixed_code = fixed_codes.get(test_char_other, "")
-            print(f"    Others char '{test_char_other}' -> '{others_huff_code}' (Others Huffman) + '{other_fixed_code}' (Fixed) = {others_huff_code + other_fixed_code}")
-
-    else:
-        print("Please create a 'test.txt' file with some text to test.")
+    # Comparison with standard Huffman (min_limit = 0)
+    _, _, fc0, codes0 = build_codes(freqs, 0)
+    bits0 = len(encode_text(original_text, codes0, fc0))
+    print(f"\nStandard Huffman bits   : {bits0} ({(bits0 + 7) // 8} bytes)")
+    print(f"Modified Huffman bits   : {original_bit_length} ({len(data)} bytes)")
