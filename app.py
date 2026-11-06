@@ -119,6 +119,8 @@ def compress_text_file(file_bytes, min_limit):
         "others_freqs": others_freqs,
         "fixed_codes": fixed_codes,
         "codes_dict": codes_dict,
+         "bitstream": bitstream,  
+         "padding_bits": len(data) * 8 - original_bit_length,  
         "original_chars": len(text),
         "original_bytes": len(file_bytes),
         "bit_length": original_bit_length,
@@ -304,6 +306,16 @@ if submit:
                 
 
                 st.subheader("6. Compression Results")
+
+                # Display Encoded Bitstream
+                st.subheader("Encoded Bitstream")
+                st.code(details["bitstream"])
+                st.write(
+                    f"Original Bit Length: {details['bit_length']} bits"
+                    )
+                st.write(
+                    f"Padding Bits: {details['padding_bits']} bits"
+                    )
 
                 col1, col2, col3 = st.columns(3)
 
