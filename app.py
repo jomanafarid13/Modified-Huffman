@@ -253,9 +253,7 @@ if submit:
                 # Save the result in the session.
                 st.session_state.compressed_data = compressed_bytes
 
-                st.session_state.compressed_filename = (
-                    os.path.splitext(uploaded_file.name)[0] + ".bin"
-                )
+                st.session_state.compressed_filename = "compressed.bin"
 
                 st.success("File compressed successfully!")
 
