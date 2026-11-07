@@ -84,7 +84,7 @@ if __name__ == "__main__":
     print(f"Ratio (with header)     : {orig_size / comp_size:.3f}")
     print(f"Ratio (data only)       : {orig_size / len(data):.3f}")
 
-    # Comparison with standard Huffman (min_limit = 0)
+
     _, _, fc0, codes0 = build_codes(freqs, 0)
     bits0 = len(encode_text(original_text, codes0, fc0))
     print(f"\nStandard Huffman bits   : {bits0} ({(bits0 + 7) // 8} bytes)")

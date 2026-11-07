@@ -6,12 +6,12 @@ def encode_text(text, codes_dict, fixed_codes):
 
     for char in text:
         if char in fixed_codes:
-            # The character belongs to the Others group
+            
             bitstream += codes_dict["Others"]
             bitstream += fixed_codes[char]
 
         elif char in codes_dict:
-            # The character has a normal Huffman code
+            
             bitstream += codes_dict[char]
 
         else:
@@ -53,16 +53,16 @@ def write_compressed_file(
         "min_limit": min_limit
     }
 
-    # Convert the header dictionary to JSON bytes
+    
     header_bytes = json.dumps(
         header,
         ensure_ascii=False
     ).encode("utf-8")
 
-    # Store the header length using 4 bytes
+    
     header_length = struct.pack(">I", len(header_bytes))
 
-    # Write the complete compressed file
+    
     with open(output_path, "wb") as file:
         file.write(header_length)
         file.write(header_bytes)
