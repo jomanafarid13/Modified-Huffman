@@ -356,7 +356,7 @@ if submit:
                     compressed_size = details["compressed_bytes"]
 
                     if compressed_size > 0:
-                        ratio = original_size / compressed_size
+                        ratio = compressed_size / original_size
 
                         st.metric(
                             "Compression Ratio",
